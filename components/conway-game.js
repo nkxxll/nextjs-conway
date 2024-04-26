@@ -63,7 +63,7 @@ function createCanvasState(width, height) {
 }
 
 /**
- * @returns {Array} start Start state of the game
+ * @returns {Array<number>} start Start state of the game
  * */
 function createStartState() {
     let start = createCanvasState(WIDTH, HEIGHT);
@@ -135,6 +135,37 @@ function draw(canvas, state) {
     }
 }
 
+function stateToString(state) {
+    let res = '';
+    state.forEach((e) => {
+        e.forEach((c) => {
+            res += c;
+        });
+    });
+    return res;
+}
+
+function stateFromString(stateString) {
+    let array = new Array(...stateString);
+    let res = array.map((x) => parseInt(x));
+    return res;
+}
+
+function saveGame(state) {
+    const stateString = stateToString(state);
+    const data = {
+        state: stateString,
+        extra: new Date().toString()
+    };
+    fetch('/api/games/create', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    });
+}
+
 export default function ConwayGame() {
     function ConwayHeader() {
         return <h1 className='text-center text-3xl text-white bg-black'>Conway's Game Of Life</h1>;
@@ -142,6 +173,23 @@ export default function ConwayGame() {
     function Screen() {
         const canvasRef = useRef(null);
         const [state, setState] = useState(createStartState());
+        const [input, setInput] = useState('1');
+        function onChange(event) {
+            setInput(event.target.value);
+        }
+
+        async function onSubmit() {
+            fetch(`/api/games/19`, {
+                method: 'GET'
+            }).then((res) => {
+                console.log(res);
+                res.json().then((resp) => {
+                    console.log('json res', resp);
+                    setState(stateFromString(resp.state));
+                });
+            });
+        }
+
         useEffect(() => {
             const interval = setInterval(() => {
                 let canvas = canvasRef.current;
@@ -152,12 +200,33 @@ export default function ConwayGame() {
             return () => clearInterval(interval);
         }, [state]);
         return (
-            <canvas
-                className='gap-10 border-4 border-zinc-200'
-                width={SCALE * WIDTH}
-                height={SCALE * HEIGHT}
-                ref={canvasRef}
-            ></canvas>
+            <>
+                <canvas
+                    className='gap-10 border-4 border-zinc-200'
+                    width={SCALE * WIDTH}
+                    height={SCALE * HEIGHT}
+                    ref={canvasRef}
+                ></canvas>
+                <button
+                    className='text-white'
+                    onClick={() => {
+                        saveGame(state);
+                    }}
+                >
+                    save
+                </button>
+                <input
+                    autoComplete='off'
+                    className='text-black'
+                    id='getgame'
+                    type='number'
+                    value={input}
+                    onChange={onChange}
+                />
+                <button type='submit' onClick={onSubmit} id='getgame' className='text-white'>
+                    Submit
+                </button>
+            </>
         );
     }
     return (
